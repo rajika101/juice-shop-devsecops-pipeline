@@ -34,3 +34,24 @@ Verify Docker:
 ```bash
 docker --version
 docker compose version
+
+## Contribution/ branching 
+
+master = stable
+develop = integration
+feature/* = new work
+fix/* = vulnerability fixes
+
+## folder structure
+
+docs/
+  architecture/
+  threat-model/
+  risk-assessment/
+
+evidence/
+  vulnerabilities/
+  sast/
+  cicd/
+  trivy/
+  secrets/
