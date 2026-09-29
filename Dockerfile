@@ -2,8 +2,21 @@ FROM node:24 AS installer
 COPY . /juice-shop
 WORKDIR /juice-shop
 RUN npm install -g typescript@^6.0.3
-RUN npm install --omit=dev
-RUN npm dedupe --omit=dev
+
+# Install backend dependencies without triggering Juice Shop's postinstall script
+RUN npm install --ignore-scripts
+
+RUN npm rebuild sqlite3
+
+# Install frontend dependencies explicitly
+RUN cd frontend && npm install
+
+# Build frontend without triggering the broken frontend SBOM generation
+RUN cd frontend && npx ng build --configuration production
+
+# Build the backend/server explicitly
+RUN npm run --silent build:server
+RUN npm prune --omit=dev
 RUN rm -rf frontend/node_modules
 RUN rm -rf frontend/.angular
 RUN rm -rf frontend/src/assets
