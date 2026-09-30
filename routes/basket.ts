@@ -16,7 +16,21 @@ export function retrieveBasket () {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
       const id = req.params.id
-      const basket = await BasketModel.findOne({ where: { id }, include: [{ model: ProductModel, paranoid: false, as: 'Products' }] })
+      const user = security.authenticatedUsers.from(req)
+      const requestedBasketId = Number.parseInt(id, 10)
+
+      if (!user?.bid || Number.isNaN(requestedBasketId) || Number(user.bid) !== requestedBasketId) {
+        return res.status(403).json({ error: 'Forbidden' })
+      }
+
+      const basket = await BasketModel.findOne({
+      where: { id: requestedBasketId },
+      include: [{
+        model: ProductModel,
+        paranoid: false,
+        as: 'Products'
+      }]
+})
       /* jshint eqeqeq:false */
       challengeUtils.solveIf(challenges.basketAccessChallenge, () => {
         const user = security.authenticatedUsers.from(req)
