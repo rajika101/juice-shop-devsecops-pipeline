@@ -36,6 +36,11 @@ jobs:
       - name: Build frontend
         run: npm run build:frontend
 
+        run: npx ng build --configuration production --stats-json
+
+      - name: Generate frontend SBOM
+        run: npm run sbom  
+
       - name: Build server
         run: npm run build:server  
           
