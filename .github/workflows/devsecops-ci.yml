@@ -2,9 +2,6 @@ name: DevSecOps CI
 
 on:
   push:
-    branches:
-      - develop
-      - feature/cicd-security
   pull_request:
     branches:
       - develop
@@ -191,3 +188,37 @@ jobs:
           severity: CRITICAL
           ignore-unfixed: true
           exit-code: "1"        
+
+  # OWASP ZAP - DAST        
+  zap-dast:
+    name: DAST (OWASP ZAP)
+    runs-on: ubuntu-latest
+    needs: docker-build
+    steps:
+      - name: Download image
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+
+      - name: Load and start the app with the secret
+        env:
+          APP_SECRET: ${{ secrets.APP_SECRET }}
+        run: |
+          docker load -i image.tar
+          docker run -d --name app -p 3000:3000 -e APP_SECRET="$APP_SECRET" "$IMAGE_NAME"
+          timeout 120 bash -c 'until curl -sf http://localhost:3000 > /dev/null; do sleep 3; done'
+
+      - name: Prove the secret reached the container
+        run: |
+          docker inspect app --format '{{range .Config.Env}}{{println .}}{{end}}' | grep -c '^APP_SECRET=' 
+
+      - name: ZAP baseline scan
+        uses: zaproxy/action-baseline@v0.14.0
+        with:
+          target: http://localhost:3000
+          allow_issue_writing: false
+          fail_action: false
+
+      - name: Stop the app
+        if: always()
+        run: docker rm -f app
