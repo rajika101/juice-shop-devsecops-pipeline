@@ -151,7 +151,7 @@ jobs:
         run: npm audit --audit-level=high                    
 
   #DOCKER BUILD
-    docker-build:
+  docker-build:
     name: Build Docker image
     runs-on: ubuntu-latest
     steps:
