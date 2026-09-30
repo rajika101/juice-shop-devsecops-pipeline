@@ -5,49 +5,41 @@ on:
     branches:
       - develop
       - feature/cicd-security
-
   pull_request:
     branches:
       - develop
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  ENFORCE_SAST: "false"
+  ENFORCE_SCA: "false"
+  ENFORCE_IMAGE_SCAN: "false"
+  NODE_VERSION: "22"
+  IMAGE_NAME: juice-shop:ci
 
 jobs:
-  build:
+  build-and-test:
+    name: Build and Test
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
+      - name: Check out the code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
 
-      - name: Upgrade npm
-        run: npm install -g npm@11
+      - name: Install dependencies (also builds the frontend)
+        run: npm install
 
-      - name: Show Node and npm versions
-        run: |
-          node --version
-          npm --version
-
-      - name: Install root dependencies
-        run: npm install --ignore-scripts
-
-      - name: Install frontend dependencies
-        working-directory: frontend
-        run: npm install --ignore-scripts
-
-      - name: Build frontend
-        working-directory: frontend
-        run: npx ng build --configuration production --stats-json
-
-      - name: Verify frontend stats file
-        run: ls -l frontend/dist/frontend/stats.json
-
-      - name: Generate frontend SBOM
-        working-directory: frontend
-        run: npm run sbom
-
-      - name: Build server
-        run: npm run build:server
+      - name: Run server tests
+        run: npm run test:server
