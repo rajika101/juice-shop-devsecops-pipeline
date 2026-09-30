@@ -45,3 +45,55 @@ jobs:
 
       - name: Run server tests
         run: npm run test:server
+
+
+  # SAST - Semgrep (static analysis of the source code)
+  sast:
+    name: SAST (Semgrep)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Semgrep
+        run: pip install semgrep
+
+      - name: Run Semgrep scan
+        run: |
+          semgrep scan \
+            --config p/javascript \
+            --config p/typescript \
+            --config p/owasp-top-ten \
+            --exclude node_modules \
+            --exclude "frontend/node_modules" \
+            --json --output semgrep.json .
+
+      - name: Summarise findings
+        run: |
+          TOTAL=$(jq '.results | length' semgrep.json)
+          ERRORS=$(jq '[.results[] | select(.extra.severity=="ERROR")] | length' semgrep.json)
+          WARNINGS=$(jq '[.results[] | select(.extra.severity=="WARNING")] | length' semgrep.json)
+          {
+            echo "### Semgrep results"
+            echo "| Total | ERROR | WARNING |"
+            echo "|---|---|---|"
+            echo "| $TOTAL | $ERRORS | $WARNINGS |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Semgrep report
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-report
+          path: semgrep.json
+
+      - name: Gate - fail on ERROR-severity findings
+        continue-on-error: ${{ env.ENFORCE_SAST != 'true' }}
+        run: |
+          ERRORS=$(jq '[.results[] | select(.extra.severity=="ERROR")] | length' semgrep.json)
+          echo "ERROR-severity findings: $ERRORS"
+          test "$ERRORS" -eq 0
