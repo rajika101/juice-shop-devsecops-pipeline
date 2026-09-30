@@ -116,4 +116,36 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITLEAKS_ENABLE_COMMENTS: "false"
-          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "true"          
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "true"
+
+  #DEPENDENCY SCAN - npm audit
+  dependency-scan:
+    name: Dependency Scan (npm audit)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Upgrade npm
+        run: npm install -g npm@11
+
+      - name: Generate lockfile
+        run: npm install --package-lock-only --ignore-scripts
+
+      - name: Save full audit report
+        run: npm audit --json > npm-audit.json || true
+
+      - name: Upload audit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-audit-report
+          path: npm-audit.json
+
+      - name: Gate - fail on HIGH or CRITICAL vulnerable packages
+        continue-on-error: ${{ env.ENFORCE_SCA != 'true' }}
+        run: npm audit --audit-level=high                    
