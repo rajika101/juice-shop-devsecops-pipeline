@@ -36,10 +36,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          
+     
+      - name: Upgrade npm
+        run: npm install -g npm@11    
 
-      - name: Install dependencies (also builds the frontend)
-        run: npm install
+      - name: Install root dependencies
+        run: npm install --ignore-scripts
 
       - name: Run server tests
         run: npm run test:server
