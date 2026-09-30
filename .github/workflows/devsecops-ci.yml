@@ -15,7 +15,7 @@ permissions:
   contents: read
 
 env:
-  ENFORCE_SAST: "false"
+  ENFORCE_SAST: "true"
   ENFORCE_SCA: "false"
   ENFORCE_IMAGE_SCAN: "false"
   NODE_VERSION: "22"
